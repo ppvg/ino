@@ -185,26 +185,35 @@ class Environment(dict):
         if 'board_models' in self:
             return self['board_models']
 
-        boards_txt = self.find_arduino_file('boards.txt', ['hardware', 'arduino'], 
-                                            human_name='Board description file (boards.txt)')
-
         self['board_models'] = BoardModels()
         self['board_models'].default = self.default_board_model
-        with open(boards_txt) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                multikey, val = line.split('=')
-                multikey = multikey.split('.')
 
-                subdict = self['board_models']
-                for key in multikey[:-1]:
-                    if key not in subdict:
-                        subdict[key] = {}
-                    subdict = subdict[key]
+        hardware_dir = self.find_arduino_dir(None, ['hardware'], human_name='Hardware directory')
+        hardware_dirs = os.walk(hardware_dir).next()[1]
 
-                subdict[multikey[-1]] = val
+        for hdir in hardware_dirs:
+            if hdir == 'tools':
+                continue
+            if 'boards.txt' in self:
+                del self['boards.txt']
+
+            boards_txt = self.find_arduino_file('boards.txt', ['hardware', hdir], 
+                                                human_name='Board description file ('+hdir+'/boards.txt)')
+            with open(boards_txt) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    multikey, val = line.split('=')
+                    multikey = multikey.split('.')
+
+                    subdict = self['board_models']
+                    for key in multikey[:-1]:
+                        if key not in subdict:
+                            subdict[key] = {}
+                        subdict = subdict[key]
+
+                    subdict[multikey[-1]] = val
 
         return self['board_models']
 
